@@ -4,24 +4,32 @@ import androidx.appcompat.app.AppCompatActivity;
 
 
 import android.content.Context;
+import android.content.Intent;
+import android.content.SharedPreferences;
 import android.content.res.Resources;
 import android.content.res.XmlResourceParser;
 import android.os.Bundle;
 import android.text.Editable;
 import android.text.TextWatcher;
 import android.util.Log;
+import android.util.Xml;
 import android.view.View;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.Button;
 import android.widget.ImageView;
+import android.widget.Toast;
 
 import com.google.android.material.textfield.TextInputEditText;
 import com.google.android.material.textfield.TextInputLayout;
 
 import org.xmlpull.v1.XmlPullParser;
 import org.xmlpull.v1.XmlPullParserException;
+import org.xmlpull.v1.XmlSerializer;
 
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.StringWriter;
 
 
 public class MainActivity extends AppCompatActivity {
@@ -33,6 +41,8 @@ public class MainActivity extends AppCompatActivity {
     private Button b2;
     private ImageView imageView;
     private int screen=1;
+    private SharedPreferences sharedPreferences;
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -40,7 +50,6 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
 
         this.findview();
-
 
         e1.addTextChangedListener(new TextWatcher() {
             @Override
@@ -72,6 +81,14 @@ public class MainActivity extends AppCompatActivity {
                         toScreen3();
                     }else{
                         e1.setText("");
+                        b1.setEnabled(false);
+                        b2.setEnabled(false);
+                    }
+                }else if (screen==3){
+                    if (encontrarcontra()&&encontrarEmail()) {
+                        startPregunta();
+                    }else{
+                        toScreen2();
                     }
                 }
             }
@@ -83,7 +100,11 @@ public class MainActivity extends AppCompatActivity {
                 if (screen == 1) {
                     toScreen2();
                 }else if (screen == 2){
+                    save(e1.getText().toString(),false);
                     toScreen3();
+                }else if (screen==3){
+                    save(e2.getText().toString(),false);
+                    startPregunta();
                 }
             }
         });
@@ -105,13 +126,14 @@ public class MainActivity extends AppCompatActivity {
         b1.setEnabled(false);
         b2.setEnabled(false);
         t1.requestFocus();
+        t2.setVisibility(View.GONE);
         InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
         imm.toggleSoftInput(InputMethodManager.SHOW_FORCED,0);
     }
     public void toScreen3(){
         t2.setVisibility(View.VISIBLE);
+        screen=3;
     }
-
     public boolean validateEmail(){
         boolean email= android.util.Patterns.EMAIL_ADDRESS.matcher(e1.getText().toString()).matches();
         return email;
@@ -119,26 +141,44 @@ public class MainActivity extends AppCompatActivity {
 
     public boolean encontrarEmail(){
         boolean encontrado=false;
-        XmlResourceParser xrp = getResources().getXml(R.xml.email);
-        try {
-            xrp.next();
-            int eventType = xrp.getEventType();
-            while(eventType!= XmlPullParser.END_DOCUMENT){
-                if(eventType == XmlPullParser.TEXT)
-                {
-                    if (e1.getText().toString().equals(xrp.getText().toString())) {
-                        encontrado=true;
-                    }
-
-                }
-                eventType=xrp.next();
-            }
-        } catch (IOException e) {
-            e.printStackTrace();
-        } catch (XmlPullParserException e) {
-            e.printStackTrace();
+        sharedPreferences=getSharedPreferences("info",Context.MODE_PRIVATE);
+        String email=sharedPreferences.getString("Email",null);
+        Toast.makeText(this, "email"+email, Toast.LENGTH_SHORT).show();
+        if (e1.getText().toString().equals(email)) {
+            encontrado=true;
         }
+
         return encontrado;
+    }
+    public boolean encontrarcontra(){
+        boolean encontrado=false;
+        sharedPreferences=getSharedPreferences("info",Context.MODE_PRIVATE);
+        String contra=sharedPreferences.getString("Contra",null);
+        Toast.makeText(this, "contra"+contra, Toast.LENGTH_SHORT).show();
+        if (e2.getText().toString().equals(contra)) {
+            encontrado=true;
+        }
+
+        return encontrado;
+    }
+    public void save(String contraOemail,boolean contra){
+        if (contra) {
+            sharedPreferences=getSharedPreferences("info",Context.MODE_PRIVATE);
+            SharedPreferences.Editor editor =sharedPreferences.edit();
+            editor.putString("Contra",contraOemail);
+            editor.commit();
+        }else {
+            sharedPreferences=getSharedPreferences("info",Context.MODE_PRIVATE);
+            SharedPreferences.Editor editor =sharedPreferences.edit();
+            editor.putString("Email",contraOemail);
+            editor.commit();
+        }
+
+
+    }
+    public void  startPregunta(){
+        Intent intent=new Intent(this,Question.class);
+        startActivity(intent );
     }
 }
 
